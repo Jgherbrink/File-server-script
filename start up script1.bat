@@ -1,0 +1,82 @@
+#!/bin/sh
+echo "Wil je verder gaan?(ja/nee)"
+read input
+if [ "$input" == "ja" ]
+then
+echo "installatie gaat beginnen"
+
+
+adduser username
+usermod -aG sudo username 
+su - username
+sudo whoami
+
+echo "Wilt u Apache of Lighttpd?(Apache/Lighttpd?)"
+read input 
+if (input  == "Apache") 
+then
+sudo apt-get install apache2 apache2-doc libexpat1 ssl-cert 
+if(input == "Lighttpd")
+then 
+sudo apt-get install lighttpd 
+
+
+sudo apt-get install mysql-server mysql-client
+
+sudo apt -qy install php php-common libapache2-mod-php php-curl php-dev php-gd php-gettext php-imagick php-intl php-mbstring php-mysql php-pear php-pspell php-recode php-xml php-zip
+
+CREATE DATABASE nextclouddb;
+CREATE USER "nextclouduser"@"localhost" IDENTIFIED BY "[pick a good password]";
+GRANT ALL ON nextclouddb.* TO 'nextclouduser'@'localhost";
+FLUSH PRIVILEGES;
+EXIT;
+
+wget https://download.nextcloud.com/server/releases/nextcloud-21.0.2.zip
+unzip nextcloud-21.0.2.zip
+mv nextcloud /var/www/html
+mv nextcloud /var/www/
+chown -R www-data:www-data /var/www/nextcloud
+chmod -R 755 /var/www/nextcloud
+
+nano /etc/apache2/sites-available/nextcloud.conf
+
+echo  "Add the following lines"
+<VirtualHost *:80>
+     ServerAdmin admin@example.com
+     DocumentRoot /var/www/nextcloud/
+     ServerName your.domain.example.com
+
+     <Directory /var/www/nextcloud/>
+        Options +FollowSymlinks
+        AllowOverride All
+        Require all granted
+          <IfModule mod_dav.c>
+            Dav off
+          </IfModule>
+        SetEnv HOME /var/www/nextcloud
+        SetEnv HTTP_HOME /var/www/nextcloud
+     </Directory>
+
+     ErrorLog ${APACHE_LOG_DIR}/error.log
+     CustomLog ${APACHE_LOG_DIR}/access.log combined
+
+
+sudo apt update
+sudo apt install fail2ban
+sudo cp /etc/fail2ban/jail.{conf,local}
+echo "configureer de volgende settings naar eigen voorkeur:"
+sudo nano /etc/fail2ban/jail.local 
+
+sudo apt update
+sudo apt install python-certbot-apache -t buster-backports
+sudo certbot --apache -d your_domain -d www.your_domain
+sudo ufw allow 443/tcp
+sudo ufw reload
+
+sudo apt install ufw
+sudo ufw enable
+sudo ufw default deny incoming
+sudo ufw default allow outgoing
+
+
+sudo service apache2 restart
